@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Whisprr.Entities.Enums;
 
-namespace Whisprr.Entities;
+namespace Whisprr.Entities.Entities;
 
 /// <summary>
 /// Describes a social information from a post, timeline, feed, etc.
