@@ -17,9 +17,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         .HasIndex(s => s.Name)
         .IsUnique();
 
-    modelBuilder.Entity<SocialInfo>()
-        .HasOne(s => s.SourcePlatform)
-        .WithMany(p => p.SocialInfos)
-        .HasForeignKey(s => s.SourcePlatformId);
+    // Optional: our relationships should be discoverable by convention
+    // modelBuilder.Entity<SocialInfo>()
+    //     .HasOne(s => s.SourcePlatform)
+    //     .WithMany(p => p.SocialInfos)
+    //     .HasForeignKey(s => s.SourcePlatformId);
   }
 }
