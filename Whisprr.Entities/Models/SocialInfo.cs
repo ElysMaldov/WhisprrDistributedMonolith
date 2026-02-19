@@ -26,7 +26,7 @@ public class SocialInfo
   [Required]
   public Guid SourcePlatformId { get; set; }
   /// <summary>
-  /// Navigation property
+  /// Reference navigation to populate the data when fetched
   /// </summary>
-  public required SourcePlatform SourcePlatform { get; set; }
+  public SourcePlatform? SourcePlatform { get; set; }
 }
