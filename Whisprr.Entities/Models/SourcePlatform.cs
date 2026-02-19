@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Whisprr.Entities.Entities;
+namespace Whisprr.Entities.Models;
 
 /// <summary>
 /// Describes a platform we use as a source (e.g. Bluesky, Mastodon, etc.)
