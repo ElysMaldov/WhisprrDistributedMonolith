@@ -2,4 +2,5 @@
   <Project Path="Whisprr.API/Whisprr.API.csproj" />
   <Project Path="Whisprr.Entities/Whisprr.Entities.csproj" />
   <Project Path="Whisprr.Infrastructure/Whisprr.Infrastructure.csproj" />
+  <Project Path="Whisprr.SocialScouter/Whisprr.SocialScouter.csproj" />
 </Solution>
