@@ -1,0 +1,6 @@
+@Whisprr.API_HostAddress = http://localhost:5047
+
+GET {{Whisprr.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
