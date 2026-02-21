@@ -8,13 +8,10 @@ namespace Whisprr.Entities.Models;
 public class SourcePlatform
 {
   public Guid Id { get; set; }
-  [Required]
   [MaxLength(100)]
   public required string Name { get; set; }
-  [Required]
   [Url]
   public required string SourceUrl { get; set; }
-  [Required]
   [Url]
   public required string IconUrl { get; set; }
   /// <summary>
