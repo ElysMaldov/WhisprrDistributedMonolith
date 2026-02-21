@@ -20,6 +20,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     // Setup enums
     modelBuilder.HasPostgresEnum<Sentiment>();
+    modelBuilder.HasPostgresEnum<TaskProgressStatus>();
 
     // Configure models using fluent API
     modelBuilder.Entity<SourcePlatform>()

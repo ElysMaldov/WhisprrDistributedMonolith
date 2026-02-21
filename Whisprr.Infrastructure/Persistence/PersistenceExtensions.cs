@@ -21,7 +21,10 @@ public static class PersistenceExtensions
 
     // Build the data source and map the enums here
     var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+
     dataSourceBuilder.MapEnum<Sentiment>();
+    dataSourceBuilder.MapEnum<TaskProgressStatus>();
+
     var dataSource = dataSourceBuilder.Build();
 
     // Register the DbContext using the data source
