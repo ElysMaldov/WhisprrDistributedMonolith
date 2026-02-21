@@ -12,7 +12,7 @@ using Whisprr.Infrastructure.Persistence;
 namespace Whisprr.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260221120236_InitialCreate")]
+    [Migration("20260221122057_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -49,7 +49,7 @@ namespace Whisprr.Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("Sentiment")
-                        .HasColumnType("integer");
+                        .HasColumnType("sentiment");
 
                     b.Property<Guid>("SourcePlatformId")
                         .HasColumnType("uuid");
@@ -103,7 +103,7 @@ namespace Whisprr.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("Status")
-                        .HasColumnType("integer");
+                        .HasColumnType("task_progress_status");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

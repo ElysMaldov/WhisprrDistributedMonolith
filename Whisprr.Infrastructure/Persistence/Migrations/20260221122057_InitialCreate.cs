@@ -49,7 +49,7 @@ namespace Whisprr.Infrastructure.Persistence.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    Status = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<int>(type: "task_progress_status", nullable: false),
                     SocialTopicId = table.Column<Guid>(type: "uuid", nullable: false),
                     SourcePlatformId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
@@ -78,7 +78,7 @@ namespace Whisprr.Infrastructure.Persistence.Migrations
                     Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Content = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    Sentiment = table.Column<int>(type: "integer", nullable: false),
+                    Sentiment = table.Column<int>(type: "sentiment", nullable: false),
                     OriginalUrl = table.Column<string>(type: "text", nullable: false),
                     SourcePlatformId = table.Column<Guid>(type: "uuid", nullable: false),
                     GeneratedFromTaskId = table.Column<Guid>(type: "uuid", nullable: false)

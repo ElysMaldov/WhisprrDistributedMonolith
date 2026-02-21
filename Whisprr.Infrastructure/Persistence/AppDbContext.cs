@@ -20,7 +20,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     // Setup enums
     modelBuilder.HasPostgresEnum<Sentiment>();
+    modelBuilder.Entity<SocialInfo>(entity =>
+    {
+      entity.Property(e => e.Sentiment)
+            .HasColumnType("sentiment");
+    });
+
     modelBuilder.HasPostgresEnum<TaskProgressStatus>();
+    modelBuilder.Entity<SocialTopicListeningTask>(entity =>
+    {
+      entity.Property(e => e.Status)
+            .HasColumnType("task_progress_status");
+    });
 
     // Configure models using fluent API
     modelBuilder.Entity<SourcePlatform>()
