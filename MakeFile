@@ -1,0 +1,6 @@
+# Run this as: make migration name=InitialCreate
+migration:
+	dotnet ef migrations add $(name) --project Whisprr.Infrastructure --startup-project Whisprr.Api -o Persistence/Migrations
+
+update:
+	dotnet ef database update --project Whisprr.Infrastructure --startup-project Whisprr.Api
