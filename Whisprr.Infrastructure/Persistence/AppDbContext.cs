@@ -1,6 +1,8 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Npgsql;
+using Whisprr.Entities.Enums;
 using Whisprr.Entities.Interfaces;
 using Whisprr.Entities.Models;
 
@@ -15,6 +17,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     base.OnModelCreating(modelBuilder);
+
+    // Setup enums
+    modelBuilder.HasPostgresEnum<Sentiment>();
 
     // Configure models using fluent API
     modelBuilder.Entity<SourcePlatform>()

@@ -1,15 +1,11 @@
-using Microsoft.EntityFrameworkCore;
 using Whisprr.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseNpgsql(
-    builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
-    ));
+
+builder.Services.AddWhisprrPersistence(builder.Configuration);
 
 var app = builder.Build();
 
