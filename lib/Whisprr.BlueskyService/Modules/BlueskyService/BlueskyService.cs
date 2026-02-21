@@ -1,8 +1,8 @@
-using BlueskyService.Models.Dto;
+using Whisprr.BlueskyService.Models.Dto;
 using System.Globalization;
 using Whisprr.Bluesky.Enums;
 
-namespace BlueskyService.Modules.BlueskyService;
+namespace Whisprr.BlueskyService.Modules.BlueskyService;
 
 /// <summary>
 /// Auth tokens are injected using the auth delegating handler so our services

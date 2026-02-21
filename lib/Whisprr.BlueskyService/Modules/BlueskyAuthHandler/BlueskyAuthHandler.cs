@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
-using BlueskyService.Modules.BlueskyAuthService;
-using BlueskyService.Modules.BlueskySessionStore;
+using Whisprr.BlueskyService.Modules.BlueskyAuthService;
+using Whisprr.BlueskyService.Modules.BlueskySessionStore;
 
-namespace BlueskyService.Modules.BlueskyAuthHandler;
+namespace Whisprr.BlueskyService.Modules.BlueskyAuthHandler;
 
 public class BlueskyAuthHandler(
     IBlueskySessionStore sessionStore,

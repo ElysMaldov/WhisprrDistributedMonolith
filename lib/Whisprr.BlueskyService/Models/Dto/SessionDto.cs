@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BlueskyService.Models.Domain;
-namespace BlueskyService.Models.Dto;
+using Whisprr.BlueskyService.Models.Domain;
+namespace Whisprr.BlueskyService.Models.Dto;
 
 public readonly struct SessionDto(string accessJwt, string refreshJwt)
 {

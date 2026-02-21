@@ -1,4 +1,4 @@
-namespace BlueskyService.Models.Domain;
+namespace Whisprr.BlueskyService.Models.Domain;
 
 /// <summary>
 /// We seperate domain from DTOs to make our program decoupled from the API.

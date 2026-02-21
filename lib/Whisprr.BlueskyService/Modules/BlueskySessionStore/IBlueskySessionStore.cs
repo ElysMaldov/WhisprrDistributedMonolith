@@ -1,6 +1,6 @@
-using BlueskyService.Models.Domain;
+using Whisprr.BlueskyService.Models.Domain;
 
-namespace BlueskyService.Modules.BlueskySessionStore;
+namespace Whisprr.BlueskyService.Modules.BlueskySessionStore;
 
 /// <summary>
 /// The program that uses this library must implement this to persist

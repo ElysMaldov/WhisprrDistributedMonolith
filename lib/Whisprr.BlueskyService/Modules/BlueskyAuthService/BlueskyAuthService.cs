@@ -1,10 +1,10 @@
-using BlueskyService.Models.Domain;
-using BlueskyService.Models.Dto;
+using Whisprr.BlueskyService.Models.Domain;
+using Whisprr.BlueskyService.Models.Dto;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text;
 
-namespace BlueskyService.Modules.BlueskyAuthService;
+namespace Whisprr.BlueskyService.Modules.BlueskyAuthService;
 
 public class BlueskyAuthService(HttpClient httpClient) : IBlueskyAuthService
 {

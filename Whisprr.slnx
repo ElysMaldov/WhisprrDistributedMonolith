@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/lib/">
     <Project Path="lib/Whisprr.Infrastructure/Whisprr.Infrastructure.csproj" />
-    <Project Path="lib/BlueskyService/BlueskyService.csproj" />
+    <Project Path="lib/Whisprr.BlueskyService/Whisprr.BlueskyService.csproj" />
     <Project Path="lib/Whisprr.Entities/Whisprr.Entities.csproj" />
   </Folder>
   <Folder Name="/tests/">

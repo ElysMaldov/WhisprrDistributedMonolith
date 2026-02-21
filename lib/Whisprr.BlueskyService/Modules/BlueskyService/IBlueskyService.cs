@@ -1,8 +1,8 @@
 using System.Globalization;
-using BlueskyService.Models.Dto;
+using Whisprr.BlueskyService.Models.Dto;
 using Whisprr.Bluesky.Enums;
 
-namespace BlueskyService.Modules.BlueskyService;
+namespace Whisprr.BlueskyService.Modules.BlueskyService;
 
 public interface IBlueskyService
 {

@@ -1,6 +1,6 @@
-using BlueskyService.Models.Domain;
+using Whisprr.BlueskyService.Models.Domain;
 
-namespace BlueskyService.Modules.BlueskyAuthService
+namespace Whisprr.BlueskyService.Modules.BlueskyAuthService
 {
   public interface IBlueskyAuthService
   {
