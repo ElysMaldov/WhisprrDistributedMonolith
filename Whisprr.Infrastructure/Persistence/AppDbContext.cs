@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Whisprr.Entities.Interfaces;
 using Whisprr.Entities.Models;
 
 namespace Whisprr.Infrastructure.Persistence;
@@ -33,6 +34,31 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
               v => new CultureInfo(v)
           );
      });
+  }
 
+  public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+  {
+    UpdateTrackableModels();
+
+    return base.SaveChangesAsync(cancellationToken);
+  }
+
+  private void UpdateTrackableModels()
+  {
+    var now = DateTimeOffset.UtcNow;
+
+    var entries = ChangeTracker.Entries<ITrackableModel>()
+        .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+    foreach (var entry in entries)
+    {
+
+      entry.Entity.UpdatedAt = now;
+
+      if (entry.State == EntityState.Added)
+      {
+        entry.Entity.CreatedAt = now;
+      }
+    }
   }
 }
