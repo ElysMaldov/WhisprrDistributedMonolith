@@ -28,5 +28,6 @@ public class SocialTopic
   public required CultureInfo Language { get; set; }
 
   // TODO add many to many relationship with Users
-  // TODO add many to many relationship with SocialInfo
+
+  public ICollection<SocialTopicListeningTask> SocialTopicListeningTask { get; set; } = [];
 }
