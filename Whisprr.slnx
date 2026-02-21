@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/Whisprr.SocialScouter.Test/Whisprr.SocialScouter.Test.csproj" />
+  </Folder>
   <Project Path="Whisprr.API/Whisprr.API.csproj" />
   <Project Path="Whisprr.Entities/Whisprr.Entities.csproj" />
   <Project Path="Whisprr.Infrastructure/Whisprr.Infrastructure.csproj" />
