@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Whisprr.Entities.Interfaces;
 using Whisprr.Entities.Models;
 
@@ -26,14 +27,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     //     .WithMany(p => p.SocialInfos)
     //     .HasForeignKey(s => s.SourcePlatformId);
 
-    modelBuilder.Entity<SocialTopic>(entity =>
-     {
-       entity.Property(e => e.Language)
-          .HasConversion(
-              v => v.Name,
-              v => new CultureInfo(v)
-          );
-     });
+    modelBuilder.Entity(ConvertSocialTopicLanguage());
+  }
+
+  private static Action<EntityTypeBuilder<SocialTopic>> ConvertSocialTopicLanguage()
+  {
+    return entity =>
+    {
+      entity.Property(e => e.Language)
+         .HasConversion(
+             v => v.Name,
+             v => new CultureInfo(v)
+         );
+    };
   }
 
   public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
