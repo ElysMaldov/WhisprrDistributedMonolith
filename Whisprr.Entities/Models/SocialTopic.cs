@@ -2,6 +2,9 @@ using System.Globalization;
 
 namespace Whisprr.Entities.Models;
 
+/// <summary>
+/// A topic users can listen to and receive multipel <see cref="SocialInfo"/>
+/// </summary>
 public class SocialTopic
 {
   public Guid Id { get; set; }
@@ -25,4 +28,5 @@ public class SocialTopic
   public required CultureInfo Language { get; set; }
 
   // TODO add many to many relationship with Users
+  // TODO add many to many relationship with SocialInfo
 }
