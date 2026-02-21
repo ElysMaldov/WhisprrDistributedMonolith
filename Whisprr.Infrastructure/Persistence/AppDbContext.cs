@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Whisprr.Entities.Models;
 
@@ -7,6 +8,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
   public DbSet<SocialInfo> SocialInfos { get; set; }
   public DbSet<SourcePlatform> SourcePlatforms { get; set; }
+  public DbSet<SocialTopic> SocialTopics { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
@@ -22,5 +24,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     //     .HasOne(s => s.SourcePlatform)
     //     .WithMany(p => p.SocialInfos)
     //     .HasForeignKey(s => s.SourcePlatformId);
+
+    modelBuilder.Entity<SocialTopic>(entity =>
+     {
+       entity.Property(e => e.Language)
+          .HasConversion(
+              v => v.Name,
+              v => new CultureInfo(v)
+          );
+     });
+
   }
 }
