@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BlueskyService/BlueskyService.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Whisprr.SocialScouter.Test/Whisprr.SocialScouter.Test.csproj" />
   </Folder>
