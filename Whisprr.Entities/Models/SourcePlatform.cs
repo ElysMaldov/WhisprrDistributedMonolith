@@ -17,5 +17,6 @@ public class SourcePlatform
   /// <summary>
   /// Collection navigation
   /// </summary>
-  public ICollection<SocialInfo> SocialInfos { get; } = [];
+  public ICollection<SocialInfo> SocialInfos { get; set; } = [];
+  public ICollection<SocialTopicListeningTask> SocialTopicListeningTask { get; set; } = [];
 }

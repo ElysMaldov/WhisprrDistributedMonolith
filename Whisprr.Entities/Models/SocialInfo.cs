@@ -24,5 +24,5 @@ public class SocialInfo
   /// <summary>
   /// Reference navigation to populate the data when fetched
   /// </summary>
-  public SourcePlatform? SourcePlatform { get; set; }
+  public SourcePlatform SourcePlatform { get; set; } = null!;
 }
