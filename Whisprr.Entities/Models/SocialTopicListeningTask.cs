@@ -14,5 +14,5 @@ public class SocialTopicListeningTask : ITrackableModel
   public Guid SourcePlatformId { get; set; }
   public SourcePlatform SourcePlatform { get; set; } = null!;
 
-  // TODO can I show a relationship of which task creates which social infos?
+  public ICollection<SocialInfo> GeneratedSocialInfos { get; set; } = []; // Since the name doesn't match convention, we setup the relationship using FLuent API in the context
 }

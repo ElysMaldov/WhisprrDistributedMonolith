@@ -28,6 +28,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     //     .HasForeignKey(s => s.SourcePlatformId);
 
     modelBuilder.Entity(ConvertSocialTopicLanguage());
+
+    modelBuilder.Entity<SocialTopicListeningTask>()
+        .HasMany(t => t.GeneratedSocialInfos)
+        .WithOne(s => s.GeneratedFromTask)
+        .HasForeignKey(s => s.GeneratedFromTaskId);
   }
 
   private static Action<EntityTypeBuilder<SocialTopic>> ConvertSocialTopicLanguage()

@@ -25,4 +25,7 @@ public class SocialInfo
   /// Reference navigation to populate the data when fetched
   /// </summary>
   public SourcePlatform SourcePlatform { get; set; } = null!;
+
+  public Guid GeneratedFromTaskId { get; set; }
+  public SocialTopicListeningTask GeneratedFromTask { get; set; } = null!;
 }
