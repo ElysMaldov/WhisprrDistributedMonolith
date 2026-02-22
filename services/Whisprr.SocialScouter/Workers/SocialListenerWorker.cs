@@ -6,7 +6,7 @@ namespace Whisprr.SocialScouter.Workers;
 
 /// <summary>
 /// Worker that consumes listening tasks from the input channel,
-/// executes social listeners, and produces SocialInfo to the output channel.
+/// executes all registered social listeners in parallel, and produces SocialInfo to the output channel.
 /// </summary>
 public partial class SocialListenerWorker(
     ILogger<SocialListenerWorker> logger,
@@ -31,25 +31,43 @@ public partial class SocialListenerWorker(
         {
             // Create a scope for scoped services (ISocialListener, IBlueskyService, etc.)
             using var scope = scopeFactory.CreateScope();
-            var listener = scope.ServiceProvider.GetRequiredService<ISocialListener>();
+            var listeners = scope.ServiceProvider.GetRequiredService<IEnumerable<ISocialListener>>();
 
             LogProcessingTask(logger, task.Id, task.SocialTopic.Id);
 
-            // Execute the search
+            // Execute all listeners in parallel
+            var listenerTasks = listeners.Select(listener => ExecuteListenerAsync(listener, task, stoppingToken));
+            await Task.WhenAll(listenerTasks);
+
+            LogTaskCompleted(logger, task.Id);
+        }
+        catch (Exception ex)
+        {
+            LogTaskFailed(logger, ex, task.Id);
+        }
+    }
+
+    private async Task ExecuteListenerAsync(ISocialListener listener, SocialTopicListeningTask task, CancellationToken stoppingToken)
+    {
+        var listenerType = listener.GetType().Name;
+        LogExecutingListener(logger, listenerType, task.Id);
+
+        try
+        {
             var socialInfos = await listener.Search(task);
 
             // Push each SocialInfo to the output channel one by one
             foreach (var socialInfo in socialInfos)
             {
                 await socialInfoChannelWriter.WriteAsync(socialInfo, stoppingToken);
-                LogPushedSocialInfo(logger, socialInfo.Id);
+                LogPushedSocialInfo(logger, socialInfo.Id, listenerType);
             }
 
-            LogTaskCompleted(logger, task.Id, socialInfos.Length);
+            LogListenerCompleted(logger, listenerType, task.Id, socialInfos.Length);
         }
         catch (Exception ex)
         {
-            LogTaskFailed(logger, ex, task.Id);
+            LogListenerFailed(logger, ex, listenerType, task.Id);
         }
     }
 
@@ -66,13 +84,28 @@ public partial class SocialListenerWorker(
 
     [LoggerMessage(
         Level = LogLevel.Debug,
-        Message = "Pushed SocialInfo {SocialInfoId} to channel")]
-    static partial void LogPushedSocialInfo(ILogger<SocialListenerWorker> logger, Guid socialInfoId);
+        Message = "Executing listener {ListenerType} for task {TaskId}")]
+    static partial void LogExecutingListener(ILogger<SocialListenerWorker> logger, string listenerType, Guid taskId);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Pushed SocialInfo {SocialInfoId} to channel from {ListenerType}")]
+    static partial void LogPushedSocialInfo(ILogger<SocialListenerWorker> logger, Guid socialInfoId, string listenerType);
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Task {TaskId} completed. Found {Count} results")]
-    static partial void LogTaskCompleted(ILogger<SocialListenerWorker> logger, Guid taskId, int count);
+        Message = "Listener {ListenerType} completed for task {TaskId}. Found {Count} results")]
+    static partial void LogListenerCompleted(ILogger<SocialListenerWorker> logger, string listenerType, Guid taskId, int count);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Listener {ListenerType} failed for task {TaskId}")]
+    static partial void LogListenerFailed(ILogger<SocialListenerWorker> logger, Exception ex, string listenerType, Guid taskId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Task {TaskId} completed. All listeners executed.")]
+    static partial void LogTaskCompleted(ILogger<SocialListenerWorker> logger, Guid taskId);
 
     [LoggerMessage(
         Level = LogLevel.Error,
