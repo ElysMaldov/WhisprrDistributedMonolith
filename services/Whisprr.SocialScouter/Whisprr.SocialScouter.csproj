@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\lib\Whisprr.BlueskyService\Whisprr.BlueskyService.csproj" />
     <ProjectReference Include="..\..\lib\Whisprr.Entities\Whisprr.Entities.csproj" />
   </ItemGroup>
 

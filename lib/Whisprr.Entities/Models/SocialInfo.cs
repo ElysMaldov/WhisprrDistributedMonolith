@@ -10,13 +10,14 @@ public class SocialInfo
 {
   public Guid Id { get; set; }
   [MaxLength(100)]
-  public required string Title { get; set; }
+  public string? Title { get; set; }
   [MaxLength(1_000)]
   public required string Content { get; set; }
   public DateTimeOffset CreatedAt { get; set; }
   public Sentiment Sentiment { get; set; }
   [Url]
   public required string OriginalUrl { get; set; }
+  public required string OriginalId { get; set; }
   /// <summary>
   /// PK for <see cref="SourcePlatform"/>
   /// </summary>
