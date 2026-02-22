@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace Whisprr.Infrastructure.RabbitMQ;
+namespace Whisprr.Infrastructure.RabbitMQ.Config;
 
 /// <summary>
 /// Manages the RabbitMQ connection lifecycle with automatic recovery.

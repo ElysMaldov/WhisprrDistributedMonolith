@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using Whisprr.Infrastructure.Json;
+using Whisprr.Infrastructure.RabbitMQ.Config;
+using Whisprr.Infrastructure.RabbitMQ.Producer;
 
 namespace Whisprr.Infrastructure.RabbitMQ;
 
@@ -14,6 +16,7 @@ public static class RabbitMQExtensions
 {
     /// <summary>
     /// Adds shared RabbitMQ infrastructure services to the DI container.
+    /// This includes connection management, configuration, and the generic publisher.
     /// </summary>
     public static IServiceCollection AddRabbitMQInfrastructure(
         this IServiceCollection services,
@@ -45,6 +48,9 @@ public static class RabbitMQExtensions
             var connection = connectionFactory.CreateConnectionAsync().GetAwaiter().GetResult();
             return new RabbitMQConnectionManager(connection, logger);
         });
+
+        // Register the generic producer
+        services.AddSingleton<IRabbitMQProducer, RabbitMQProducer>();
 
         return services;
     }

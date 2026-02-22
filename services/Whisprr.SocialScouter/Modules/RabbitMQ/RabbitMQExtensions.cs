@@ -16,8 +16,8 @@ public static class RabbitMQExtensions
         builder.Services.AddRabbitMQInfrastructure(builder.Configuration);
 
         // Register SocialScouter-specific services
-        builder.Services.AddHostedService<RabbitMQListeningTaskConsumer>();
-        builder.Services.AddSingleton<RabbitMQListeningTaskPublisher>();
+        builder.Services.AddHostedService<SocialListeningTaskConsumer>();
+        builder.Services.AddSingleton<SocialListeningTaskProducer>();
 
         return builder;
     }

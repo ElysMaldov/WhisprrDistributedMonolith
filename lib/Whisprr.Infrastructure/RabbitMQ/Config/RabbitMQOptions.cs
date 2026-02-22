@@ -1,4 +1,4 @@
-namespace Whisprr.Infrastructure.RabbitMQ;
+namespace Whisprr.Infrastructure.RabbitMQ.Config;
 
 /// <summary>
 /// Configuration options for RabbitMQ connection.

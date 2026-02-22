@@ -1,24 +1,22 @@
 using System.Threading.Channels;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StackExchange.Redis;
-using Whisprr.Entities.Models;
-using Whisprr.Infrastructure.RabbitMQ;
+using Whisprr.Infrastructure.RabbitMQ.Config;
 
-namespace Whisprr.SocialScouter.Modules.RabbitMQ;
+namespace Whisprr.Infrastructure.RabbitMQ.Consumer;
 
 /// <summary>
-/// Hosted service that consumes social listening tasks from RabbitMQ
-/// and pushes them to the in-memory channel for processing by SocialListenerWorker.
-/// Includes Dead Letter Exchange (DLX) support for failed messages.
+/// Base class for RabbitMQ consumers with Dead Letter Exchange (DLX) support and retry logic.
 /// </summary>
-public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
+public abstract partial class RabbitMQConsumerBase<TMessage> : BackgroundService where TMessage : class
 {
     private readonly RabbitMQConnectionManager _connectionManager;
-    private readonly RabbitMQOptions _options;
-    private readonly ChannelWriter<SocialTopicListeningTask> _taskChannelWriter;
+    protected readonly RabbitMQOptions _options;
     private readonly IDatabase _redisDb;
-    private readonly ILogger<RabbitMQListeningTaskConsumer> _logger;
+    private readonly ILogger _logger;
 
     private IChannel? _channel;
     private string? _consumerTag;
@@ -28,23 +26,41 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
     // Retry count expiration (24 hours)
     private static readonly TimeSpan RetryCountExpiration = TimeSpan.FromHours(24);
 
-    public RabbitMQListeningTaskConsumer(
+    /// <summary>
+    /// The queue name to consume from.
+    /// </summary>
+    protected abstract string QueueName { get; }
+
+    /// <summary>
+    /// The exchange name to bind to.
+    /// </summary>
+    protected abstract string ExchangeName { get; }
+
+    /// <summary>
+    /// The routing key to bind with.
+    /// </summary>
+    protected abstract string RoutingKey { get; }
+
+    /// <summary>
+    /// The channel writer to push processed messages to.
+    /// </summary>
+    protected abstract ChannelWriter<TMessage> ChannelWriter { get; }
+
+    protected RabbitMQConsumerBase(
         RabbitMQConnectionManager connectionManager,
         RabbitMQOptions options,
-        ChannelWriter<SocialTopicListeningTask> taskChannelWriter,
         IDatabase redisDb,
-        ILogger<RabbitMQListeningTaskConsumer> logger)
+        ILogger logger)
     {
         _connectionManager = connectionManager;
         _options = options;
-        _taskChannelWriter = taskChannelWriter;
         _redisDb = redisDb;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        LogConsumerStarting(_logger, _options.Host, _options.ListeningTaskQueue);
+        LogConsumerStarting(_logger, _options.Host, QueueName);
 
         try
         {
@@ -69,7 +85,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
 
         // Declare main exchange
         await _channel.ExchangeDeclareAsync(
-            exchange: _options.ListeningTaskExchange,
+            exchange: ExchangeName,
             type: ExchangeType.Topic,
             durable: true,
             autoDelete: false,
@@ -106,7 +122,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
         };
 
         await _channel.QueueDeclareAsync(
-            queue: _options.ListeningTaskQueue,
+            queue: QueueName,
             durable: true,
             exclusive: false,
             autoDelete: false,
@@ -114,9 +130,9 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
             cancellationToken: cancellationToken);
 
         await _channel.QueueBindAsync(
-            queue: _options.ListeningTaskQueue,
-            exchange: _options.ListeningTaskExchange,
-            routingKey: _options.ListeningTaskRoutingKey,
+            queue: QueueName,
+            exchange: ExchangeName,
+            routingKey: RoutingKey,
             cancellationToken: cancellationToken);
 
         // Set QoS to process one message at a time per consumer
@@ -126,7 +142,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
             global: false,
             cancellationToken: cancellationToken);
 
-        LogChannelInitialized(_logger, _options.ListeningTaskQueue, _options.ListeningTaskExchange);
+        LogChannelInitialized(_logger, QueueName, ExchangeName);
         LogDlxInitialized(_logger, _options.DeadLetterExchange, _options.DeadLetterQueue);
     }
 
@@ -141,7 +157,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
         consumer.ReceivedAsync += OnMessageReceivedAsync;
 
         _consumerTag = await _channel.BasicConsumeAsync(
-            queue: _options.ListeningTaskQueue,
+            queue: QueueName,
             autoAck: false,
             consumer: consumer,
             cancellationToken: stoppingToken);
@@ -169,9 +185,9 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
         try
         {
             // Deserialize the message
-            var task = args.Body.Span.FromJsonBytes<SocialTopicListeningTask>();
+            var message = args.Body.Span.FromJsonBytes<TMessage>();
 
-            if (task is null)
+            if (message is null)
             {
                 LogDeserializationFailed(_logger, deliveryTag);
                 // Don't requeue - send to DLQ immediately
@@ -179,7 +195,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
                 return;
             }
 
-            LogMessageReceived(_logger, task.Id, deliveryTag);
+            LogMessageReceived(_logger, messageId, deliveryTag);
 
             // Simulate failure for testing DLX
             if (_options.SimulateFailureRate > 0 && Random.Shared.NextDouble() < _options.SimulateFailureRate)
@@ -188,7 +204,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
             }
 
             // Push to the channel (wait if channel is full)
-            await _taskChannelWriter.WriteAsync(task);
+            await ChannelWriter.WriteAsync(message);
 
             // Acknowledge the message after successful processing
             await _channel.BasicAckAsync(deliveryTag, multiple: false);
@@ -196,7 +212,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
             // Clear retry count on success
             await ClearRetryCountAsync(messageId);
 
-            LogMessageProcessed(_logger, task.Id);
+            LogMessageProcessed(_logger, messageId);
         }
         catch (ChannelClosedException)
         {
@@ -294,80 +310,80 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "RabbitMQ consumer starting. Host: {Host}, Queue: {Queue}")]
-    static partial void LogConsumerStarting(ILogger<RabbitMQListeningTaskConsumer> logger, string host, string queue);
+    static partial void LogConsumerStarting(ILogger logger, string host, string queue);
 
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "RabbitMQ channel initialized. Queue: {Queue}, Exchange: {Exchange}")]
-    static partial void LogChannelInitialized(ILogger<RabbitMQListeningTaskConsumer> logger, string queue, string exchange);
+    static partial void LogChannelInitialized(ILogger logger, string queue, string exchange);
 
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "RabbitMQ DLX initialized. Exchange: {DlxExchange}, Queue: {DlqQueue}")]
-    static partial void LogDlxInitialized(ILogger<RabbitMQListeningTaskConsumer> logger, string dlxExchange, string dlqQueue);
+    static partial void LogDlxInitialized(ILogger logger, string dlxExchange, string dlqQueue);
 
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "RabbitMQ consumer started with tag: {ConsumerTag}")]
-    static partial void LogConsumerStarted(ILogger<RabbitMQListeningTaskConsumer> logger, string consumerTag);
+    static partial void LogConsumerStarted(ILogger logger, string consumerTag);
 
     [LoggerMessage(
         Level = LogLevel.Debug,
-        Message = "Received message. TaskId: {TaskId}, DeliveryTag: {DeliveryTag}")]
-    static partial void LogMessageReceived(ILogger<RabbitMQListeningTaskConsumer> logger, Guid taskId, ulong deliveryTag);
+        Message = "Received message. MessageId: {MessageId}, DeliveryTag: {DeliveryTag}")]
+    static partial void LogMessageReceived(ILogger logger, string messageId, ulong deliveryTag);
 
     [LoggerMessage(
         Level = LogLevel.Debug,
-        Message = "Message processed successfully. TaskId: {TaskId}")]
-    static partial void LogMessageProcessed(ILogger<RabbitMQListeningTaskConsumer> logger, Guid taskId);
+        Message = "Message processed successfully. MessageId: {MessageId}")]
+    static partial void LogMessageProcessed(ILogger logger, string messageId);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Failed to deserialize message. DeliveryTag: {DeliveryTag}")]
-    static partial void LogDeserializationFailed(ILogger<RabbitMQListeningTaskConsumer> logger, ulong deliveryTag);
+    static partial void LogDeserializationFailed(ILogger logger, ulong deliveryTag);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Channel closed while processing message. DeliveryTag: {DeliveryTag}")]
-    static partial void LogChannelClosed(ILogger<RabbitMQListeningTaskConsumer> logger, ulong deliveryTag);
+    static partial void LogChannelClosed(ILogger logger, ulong deliveryTag);
 
     [LoggerMessage(
         Level = LogLevel.Error,
         Message = "Failed to process message. DeliveryTag: {DeliveryTag}, MessageId: {MessageId}")]
-    static partial void LogMessageProcessingFailed(ILogger<RabbitMQListeningTaskConsumer> logger, Exception ex, ulong deliveryTag, string messageId);
+    static partial void LogMessageProcessingFailed(ILogger logger, Exception ex, ulong deliveryTag, string messageId);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Retry attempt {RetryCount}/{MaxRetries} for message {MessageId}")]
-    static partial void LogRetryAttempt(ILogger<RabbitMQListeningTaskConsumer> logger, string messageId, int retryCount, int maxRetries);
+    static partial void LogRetryAttempt(ILogger logger, string messageId, int retryCount, int maxRetries);
 
     [LoggerMessage(
         Level = LogLevel.Error,
         Message = "Max retries ({MaxRetries}) reached for message {MessageId}. Sending to DLQ. Error: {ErrorMessage}")]
-    static partial void LogMaxRetriesReached(ILogger<RabbitMQListeningTaskConsumer> logger, string messageId, int maxRetries, string errorMessage);
+    static partial void LogMaxRetriesReached(ILogger logger, string messageId, int maxRetries, string errorMessage);
 
     [LoggerMessage(
         Level = LogLevel.Error,
         Message = "Failed to reject message. DeliveryTag: {DeliveryTag}")]
-    static partial void LogRejectFailed(ILogger<RabbitMQListeningTaskConsumer> logger, Exception ex, ulong deliveryTag);
+    static partial void LogRejectFailed(ILogger logger, Exception ex, ulong deliveryTag);
 
     [LoggerMessage(
         Level = LogLevel.Error,
         Message = "Failed to cancel consumer. ConsumerTag: {ConsumerTag}")]
-    static partial void LogCancelFailed(ILogger<RabbitMQListeningTaskConsumer> logger, Exception ex, string consumerTag);
+    static partial void LogCancelFailed(ILogger logger, Exception ex, string consumerTag);
 
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "RabbitMQ consumer stopping...")]
-    static partial void LogConsumerStopping(ILogger<RabbitMQListeningTaskConsumer> logger);
+    static partial void LogConsumerStopping(ILogger logger);
 
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "RabbitMQ consumer stopped")]
-    static partial void LogConsumerStopped(ILogger<RabbitMQListeningTaskConsumer> logger);
+    static partial void LogConsumerStopped(ILogger logger);
 
     [LoggerMessage(
         Level = LogLevel.Error,
         Message = "RabbitMQ consumer error")]
-    static partial void LogConsumerError(ILogger<RabbitMQListeningTaskConsumer> logger, Exception ex);
+    static partial void LogConsumerError(ILogger logger, Exception ex);
 }

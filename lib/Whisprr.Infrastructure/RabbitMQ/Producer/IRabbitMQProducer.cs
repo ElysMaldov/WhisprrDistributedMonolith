@@ -1,14 +1,14 @@
-namespace Whisprr.Infrastructure.RabbitMQ;
+namespace Whisprr.Infrastructure.RabbitMQ.Producer;
 
 /// <summary>
 /// Generic interface for publishing messages to RabbitMQ.
 /// </summary>
-public interface IRabbitMQPublisher
+public interface IRabbitMQProducer
 {
     /// <summary>
-    /// Publishes a message to the specified exchange with the given routing key.
+    /// Produces a message to the specified exchange with the given routing key.
     /// </summary>
-    Task PublishAsync<T>(
+    Task ProduceAsync<T>(
         T message,
         string exchange,
         string routingKey,
