@@ -5,6 +5,7 @@ using Whisprr.BlueskyService.Modules.BlueskyAuthService;
 using Whisprr.BlueskyService.Modules.BlueskyService;
 using Whisprr.BlueskyService.Modules.BlueskySessionStore;
 using Whisprr.Entities.Models;
+using Whisprr.SocialScouter.Modules.RabbitMQ;
 using Whisprr.SocialScouter.Modules.SocialListener;
 using Whisprr.SocialScouter.Workers;
 
@@ -48,7 +49,7 @@ builder.Services.AddScoped<IBlueskyService, BlueskyService>();
 builder.Services.AddScoped<ISocialListener, BlueskySocialListener>();
 
 // Configure channels
-// Channel for activating social listeners (input)
+// Channel for activating social listeners (input) - consumed by SocialListenerWorker
 builder.Services.AddSingleton<Channel<SocialTopicListeningTask>>(_ =>
     Channel.CreateUnbounded<SocialTopicListeningTask>(new UnboundedChannelOptions
     {
@@ -69,6 +70,9 @@ builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<SocialTopicLis
 builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<SocialTopicListeningTask>>().Writer);
 builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<SocialInfo>>().Reader);
 builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<SocialInfo>>().Writer);
+
+// Add RabbitMQ infrastructure (includes RabbitMQListeningTaskConsumer hosted service)
+builder.AddRabbitMQ();
 
 // Register workers
 builder.Services.AddHostedService<SocialListenerWorker>();
