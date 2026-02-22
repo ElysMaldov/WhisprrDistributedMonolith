@@ -1,30 +1,36 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct ProfileViewBasicDto(
-    string dId,
-    string handle,
-    string displayName,
-    string avatar,
-    string[] labels,
-    DateTimeOffset createdAt)
+public readonly struct ProfileViewBasicDto
 {
-  public string DId { get; } = dId;
-  public string Handle { get; } = handle;
-  public string DisplayName { get; } = displayName;
-  public string Avatar { get; } = avatar;
-  public string[] Labels { get; } = labels;
-  public DateTimeOffset CreatedAt { get; } = createdAt;
+    [JsonPropertyName("did")]
+    public string DId { get; init; }
 
-  public static ProfileViewBasicDto FromJson(string json)
-  {
-    return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.ProfileViewBasicDto);
-  }
+    [JsonPropertyName("handle")]
+    public string Handle { get; init; }
 
-  public BlueskyAuthor ToDomain()
-  {
-    return new BlueskyAuthor(DId, Handle, DisplayName, Avatar, Labels, CreatedAt);
-  }
+    [JsonPropertyName("displayName")]
+    public string DisplayName { get; init; }
+
+    [JsonPropertyName("avatar")]
+    public string Avatar { get; init; }
+
+    [JsonPropertyName("labels")]
+    public string[] Labels { get; init; }
+
+    [JsonPropertyName("createdAt")]
+    public DateTimeOffset CreatedAt { get; init; }
+
+    public static ProfileViewBasicDto FromJson(string json)
+    {
+        return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.ProfileViewBasicDto);
+    }
+
+    public BlueskyAuthor ToDomain()
+    {
+        return new BlueskyAuthor(DId, Handle, DisplayName, Avatar, Labels, CreatedAt);
+    }
 }

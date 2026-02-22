@@ -1,15 +1,18 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct SearchPostsResponseDto(
-    string? cursor,
-    int hitsTotal,
-    PostViewDto[] posts)
+public readonly struct SearchPostsResponseDto
 {
-    public string? Cursor { get; } = cursor;
-    public int HitsTotal { get; } = hitsTotal;
-    public PostViewDto[] Posts { get; } = posts;
+    [JsonPropertyName("cursor")]
+    public string? Cursor { get; init; }
+
+    [JsonPropertyName("hitsTotal")]
+    public int HitsTotal { get; init; }
+
+    [JsonPropertyName("posts")]
+    public PostViewDto[] Posts { get; init; }
 
     public static SearchPostsResponseDto FromJson(string json)
     {

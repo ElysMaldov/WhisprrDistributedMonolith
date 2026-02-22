@@ -1,51 +1,62 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct PostViewDto(
-    string uri,
-    string cId,
-    ProfileViewBasicDto author,
-    BlueskyPostRecordDto record,
-    int bookmarkCount,
-    int replyCount,
-    int repostCount,
-    int likeCount,
-    int quoteCount,
-    DateTimeOffset indexedAt,
-    string[] labels)
+public readonly struct PostViewDto
 {
-  public string Uri { get; } = uri;
-  public string CId { get; } = cId;
-  public ProfileViewBasicDto Author { get; } = author;
-  public BlueskyPostRecordDto Record { get; } = record;
-  public int BookmarkCount { get; } = bookmarkCount;
-  public int ReplyCount { get; } = replyCount;
-  public int RepostCount { get; } = repostCount;
-  public int LikeCount { get; } = likeCount;
-  public int QuoteCount { get; } = quoteCount;
-  public DateTimeOffset IndexedAt { get; } = indexedAt;
-  public string[] Labels { get; } = labels;
+    [JsonPropertyName("uri")]
+    public string Uri { get; init; }
 
-  public static PostViewDto FromJson(string json)
-  {
-    return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.PostViewDto);
-  }
+    [JsonPropertyName("cid")]
+    public string CId { get; init; }
 
-  public BlueskyPost ToDomain()
-  {
-    return new BlueskyPost(
-      Uri,
-      CId,
-      Author.ToDomain(),
-      Record.ToDomain(),
-      BookmarkCount,
-      ReplyCount,
-      RepostCount,
-      LikeCount,
-      QuoteCount,
-      IndexedAt,
-      Labels);
-  }
+    [JsonPropertyName("author")]
+    public ProfileViewBasicDto Author { get; init; }
+
+    [JsonPropertyName("record")]
+    public BlueskyPostRecordDto Record { get; init; }
+
+    [JsonPropertyName("bookmarkCount")]
+    public int BookmarkCount { get; init; }
+
+    [JsonPropertyName("replyCount")]
+    public int ReplyCount { get; init; }
+
+    [JsonPropertyName("repostCount")]
+    public int RepostCount { get; init; }
+
+    [JsonPropertyName("likeCount")]
+    public int LikeCount { get; init; }
+
+    [JsonPropertyName("quoteCount")]
+    public int QuoteCount { get; init; }
+
+    [JsonPropertyName("indexedAt")]
+    public DateTimeOffset IndexedAt { get; init; }
+
+    [JsonPropertyName("labels")]
+    public string[] Labels { get; init; }
+
+    public static PostViewDto FromJson(string json)
+    {
+        return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.PostViewDto);
+    }
+
+    public BlueskyPost ToDomain()
+    {
+        return new BlueskyPost(
+            Uri,
+            CId,
+            Author.ToDomain(),
+            Record.ToDomain(),
+            BookmarkCount,
+            ReplyCount,
+            RepostCount,
+            LikeCount,
+            QuoteCount,
+            IndexedAt,
+            Labels);
+    }
 }
