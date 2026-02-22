@@ -4,7 +4,7 @@ using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct ProfileViewBasicDto
+internal readonly struct ProfileViewBasicDto
 {
     [JsonPropertyName("did")]
     public string DId { get; init; }

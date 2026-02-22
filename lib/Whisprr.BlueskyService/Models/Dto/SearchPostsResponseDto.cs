@@ -4,7 +4,7 @@ using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct SearchPostsResponseDto
+internal readonly struct SearchPostsResponseDto
 {
     [JsonPropertyName("cursor")]
     public string? Cursor { get; init; }

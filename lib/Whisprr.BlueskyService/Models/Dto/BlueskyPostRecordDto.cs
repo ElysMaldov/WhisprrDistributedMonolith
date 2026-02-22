@@ -4,7 +4,7 @@ using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct BlueskyPostRecordDto
+internal readonly struct BlueskyPostRecordDto
 {
     [JsonPropertyName("langs")]
     public string[] Langs { get; init; }

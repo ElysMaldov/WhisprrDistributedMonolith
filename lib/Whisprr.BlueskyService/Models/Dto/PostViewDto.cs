@@ -4,7 +4,7 @@ using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct PostViewDto
+internal readonly struct PostViewDto
 {
     [JsonPropertyName("uri")]
     public string Uri { get; init; }

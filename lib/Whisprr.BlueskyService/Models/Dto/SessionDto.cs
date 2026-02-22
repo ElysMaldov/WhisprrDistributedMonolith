@@ -4,7 +4,7 @@ using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct SessionDto
+internal readonly struct SessionDto
 {
     [JsonPropertyName("accessJwt")]
     public string AccessJwt { get; init; }
