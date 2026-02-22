@@ -3,7 +3,7 @@ using System.Net;
 using System.Text.Json;
 using Moq;
 using Moq.Protected;
-using Whisprr.Bluesky.Enums;
+using Whisprr.BlueskyService.Enums;
 using Whisprr.BlueskyService.Models.Dto;
 
 // Alias to avoid namespace conflict with test class namespace
@@ -139,7 +139,7 @@ public class BlueskyServiceTest
 
     // Assert
     Assert.NotNull(capturedRequest);
-    Assert.Contains("since=2024-01-15T10:30:00", capturedRequest!.RequestUri!.Query);
+    Assert.Contains("since=2024-01-15T10%3A30%3A00", capturedRequest!.RequestUri!.Query);
   }
 
   /// <summary>
@@ -172,7 +172,7 @@ public class BlueskyServiceTest
 
     // Assert
     Assert.NotNull(capturedRequest);
-    Assert.Contains("until=2024-12-31T23:59:59", capturedRequest!.RequestUri!.Query);
+    Assert.Contains("until=2024-12-31T23%3A59%3A59", capturedRequest!.RequestUri!.Query);
   }
 
   /// <summary>
@@ -247,10 +247,10 @@ public class BlueskyServiceTest
   }
 
   /// <summary>
-  /// Test 7: SearchPosts should return deserialized SearchPostDto array.
+  /// Test 7: SearchPosts should return deserialized SearchPostsResponseDto.
   /// </summary>
   [Fact]
-  public async Task SearchPosts_WithValidResponse_ReturnsSearchPostDtos()
+  public async Task SearchPosts_WithValidResponse_ReturnsSearchPostsResponseDto()
   {
     // Arrange
     var query = "test";
@@ -287,8 +287,9 @@ public class BlueskyServiceTest
     var result = await service.SearchPosts(query, null, null, null, null, null);
 
     // Assert
-    Assert.NotNull(result);
-    Assert.IsType<SearchPostDto[]>(result);
+    Assert.IsType<SearchPostsResponseDto>(result);
+    Assert.NotNull(result.Posts);
+    Assert.Single(result.Posts);
   }
 
   /// <summary>
@@ -312,8 +313,8 @@ public class BlueskyServiceTest
     var result = await service.SearchPosts(query, null, null, null, null, null);
 
     // Assert
-    Assert.NotNull(result);
-    Assert.Empty(result);
+    Assert.NotNull(result.Posts);
+    Assert.Empty(result.Posts);
   }
 
   /// <summary>
@@ -407,8 +408,8 @@ public class BlueskyServiceTest
     var queryString = capturedRequest!.RequestUri!.Query;
     Assert.Contains($"q={Uri.EscapeDataString(query)}", queryString);
     Assert.Contains("sort=latest", queryString);
-    Assert.Contains("since=2024-01-01T00:00:00", queryString);
-    Assert.Contains("until=2024-12-31T23:59:59", queryString);
+    Assert.Contains("since=2024-01-01T00%3A00%3A00", queryString);
+    Assert.Contains("until=2024-12-31T23%3A59%3A59", queryString);
     Assert.Contains("lang=en", queryString);
     Assert.Contains("limit=50", queryString);
   }
