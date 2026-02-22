@@ -2,8 +2,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using RabbitMQ.Client;
+using Whisprr.Infrastructure.Json;
 
 namespace Whisprr.Infrastructure.RabbitMQ;
 
@@ -67,9 +67,7 @@ public static class RabbitMQExtensions
 
     private static class JsonOptions
     {
-        public static readonly JsonSerializerOptions Default = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
+        public static readonly JsonSerializerOptions Default = new JsonSerializerOptions()
+            .ConfigureForDomain();
     }
 }
