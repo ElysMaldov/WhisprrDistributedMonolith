@@ -5,8 +5,8 @@ using Whisprr.BlueskyService.Models.Dto;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     WriteIndented = false)]
 [JsonSerializable(typeof(SearchPostsResponseDto))]
-[JsonSerializable(typeof(SearchPostDto))]
-[JsonSerializable(typeof(BlueskyAuthorDto))]
+[JsonSerializable(typeof(PostViewDto))]
+[JsonSerializable(typeof(ProfileViewBasicDto))]
 [JsonSerializable(typeof(BlueskyPostRecordDto))]
 [JsonSerializable(typeof(SessionDto))]
 internal partial class BlueskyDtoContext : JsonSerializerContext

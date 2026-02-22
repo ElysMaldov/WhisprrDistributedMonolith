@@ -3,7 +3,7 @@ using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct BlueskyAuthorDto(
+public readonly struct ProfileViewBasicDto(
     string dId,
     string handle,
     string displayName,
@@ -18,9 +18,9 @@ public readonly struct BlueskyAuthorDto(
   public string[] Labels { get; } = labels;
   public DateTimeOffset CreatedAt { get; } = createdAt;
 
-  public static BlueskyAuthorDto FromJson(string json)
+  public static ProfileViewBasicDto FromJson(string json)
   {
-    return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.BlueskyAuthorDto);
+    return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.ProfileViewBasicDto);
   }
 
   public BlueskyAuthor ToDomain()

@@ -3,10 +3,10 @@ using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
-public readonly struct SearchPostDto(
+public readonly struct PostViewDto(
     string uri,
     string cId,
-    BlueskyAuthorDto author,
+    ProfileViewBasicDto author,
     BlueskyPostRecordDto record,
     int bookmarkCount,
     int replyCount,
@@ -18,7 +18,7 @@ public readonly struct SearchPostDto(
 {
   public string Uri { get; } = uri;
   public string CId { get; } = cId;
-  public BlueskyAuthorDto Author { get; } = author;
+  public ProfileViewBasicDto Author { get; } = author;
   public BlueskyPostRecordDto Record { get; } = record;
   public int BookmarkCount { get; } = bookmarkCount;
   public int ReplyCount { get; } = replyCount;
@@ -28,9 +28,9 @@ public readonly struct SearchPostDto(
   public DateTimeOffset IndexedAt { get; } = indexedAt;
   public string[] Labels { get; } = labels;
 
-  public static SearchPostDto FromJson(string json)
+  public static PostViewDto FromJson(string json)
   {
-    return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.SearchPostDto);
+    return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.PostViewDto);
   }
 
   public BlueskyPost ToDomain()
