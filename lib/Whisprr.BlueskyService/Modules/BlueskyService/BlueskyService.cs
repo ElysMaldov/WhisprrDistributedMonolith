@@ -1,4 +1,5 @@
 using Whisprr.BlueskyService.Models.Dto;
+using Whisprr.BlueskyService.Models.Domain;
 using System.Globalization;
 using Microsoft.AspNetCore.WebUtilities;
 using Whisprr.BlueskyService.Enums;
@@ -12,13 +13,13 @@ namespace Whisprr.BlueskyService.Modules.BlueskyService;
 /// <param name="httpClient"></param>
 public class BlueskyService(HttpClient httpClient) : IBlueskyService
 {
-  public async Task<SearchPostsResponseDto> SearchPosts(
+  public async Task<SearchPostsResponse> SearchPosts(
     string q,
-    PostSortOrder? sort,
-    DateTimeOffset? since,
-    DateTimeOffset? until,
-    CultureInfo? lang,
-    int? limit
+    PostSortOrder? sort = null,
+    DateTimeOffset? since = null,
+    DateTimeOffset? until = null,
+    CultureInfo? lang = null,
+    int? limit = null
     )
   {
     var endpoint = "/xrpc/app.bsky.feed.searchPosts";
@@ -41,6 +42,6 @@ public class BlueskyService(HttpClient httpClient) : IBlueskyService
     var json = await response.Content.ReadAsStringAsync();
     var dto = SearchPostsResponseDto.FromJson(json);
 
-    return dto;
+    return dto.ToDomain();
   }
 }

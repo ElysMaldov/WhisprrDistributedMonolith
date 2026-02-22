@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Models.Dto;
 
@@ -17,5 +18,14 @@ public readonly struct SearchPostsResponseDto
     public static SearchPostsResponseDto FromJson(string json)
     {
         return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.SearchPostsResponseDto);
+    }
+
+    public SearchPostsResponse ToDomain()
+    {
+        return new SearchPostsResponse(
+            Cursor,
+            HitsTotal,
+            Posts.Select(p => p.ToDomain()).ToArray()
+        );
     }
 }

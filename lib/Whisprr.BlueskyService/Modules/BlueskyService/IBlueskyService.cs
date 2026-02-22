@@ -1,17 +1,17 @@
 using System.Globalization;
-using Whisprr.BlueskyService.Models.Dto;
+using Whisprr.BlueskyService.Models.Domain;
 using Whisprr.BlueskyService.Enums;
 
 namespace Whisprr.BlueskyService.Modules.BlueskyService;
 
 public interface IBlueskyService
 {
-  public Task<SearchPostsResponseDto> SearchPosts(
+  public Task<SearchPostsResponse> SearchPosts(
     string q,
-    PostSortOrder? sort,
-    DateTimeOffset? since,
-    DateTimeOffset? until,
-    CultureInfo? lang,
-    int? limit
+    PostSortOrder? sort = null,
+    DateTimeOffset? since = null,
+    DateTimeOffset? until = null,
+    CultureInfo? lang = null,
+    int? limit = null
   );
 }
