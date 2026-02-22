@@ -2,7 +2,7 @@ using Whisprr.Entities.Models;
 
 namespace Whisprr.SocialScouter.Modules.SocialListener;
 
-public abstract partial class SocialListener(ILogger logger) : ISocialListener
+public abstract partial class SocialListener<T>(ILogger<T> logger) : ISocialListener where T : SocialListener<T>
 {
   // We seperate the logger messages for best performance. Since we use Guid,
   // we'll need to box it even when our logger isn't activated (for example we only allow Warning and above).
@@ -19,12 +19,12 @@ public abstract partial class SocialListener(ILogger logger) : ISocialListener
       Message = "Starting search for task: {TaskId}")]
   // partial is used since LoggerMessage is generates source code, so we use partial to allow it
   // to generate the code for this method
-  static partial void LogStartingSearch(ILogger logger, Guid taskId);
+  static partial void LogStartingSearch(ILogger<T> logger, Guid taskId);
 
   [LoggerMessage(
       Level = LogLevel.Error,
       Message = "The search failed for task: {TaskId}")]
-  static partial void LogSearchError(ILogger logger, Exception ex, Guid taskId);
+  static partial void LogSearchError(ILogger<T> logger, Exception ex, Guid taskId);
 
   /// <summary>
   /// Uses template method pattern since handling logs are the same, only difference

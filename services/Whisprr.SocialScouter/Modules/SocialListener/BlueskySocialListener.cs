@@ -4,7 +4,9 @@ using Whisprr.SocialScouter.Models.Extensions;
 
 namespace Whisprr.SocialScouter.Modules.SocialListener;
 
-public class BlueskySocialListener(ILogger logger, IBlueskyService blueskyService) : SocialListener(logger)
+public class BlueskySocialListener(
+    ILogger<BlueskySocialListener> logger,
+    IBlueskyService blueskyService) : SocialListener<BlueskySocialListener>(logger)
 {
   protected override async Task<SocialInfo[]> PerformSearch(SocialTopicListeningTask task)
   {
