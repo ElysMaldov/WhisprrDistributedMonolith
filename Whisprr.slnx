@@ -5,6 +5,7 @@
     <Project Path="lib/Whisprr.Entities/Whisprr.Entities.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Whisprr.BlueskyService.Test/Whisprr.BlueskyService.Test.csproj" />
     <Project Path="tests/Whisprr.SocialScouter.Test/Whisprr.SocialScouter.Test.csproj" />
   </Folder>
   <Folder Name="/services/">
