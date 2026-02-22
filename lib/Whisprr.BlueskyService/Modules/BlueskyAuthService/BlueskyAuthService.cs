@@ -35,7 +35,7 @@ public class BlueskyAuthService(HttpClient httpClient) : IBlueskyAuthService
     return session;
   }
 
-  private readonly SemaphoreSlim _refreshSemaphore = new(1, 1);
+  private readonly SemaphoreSlim _refreshSemaphore = new(1, 1); // Start 1, max 1
   private BlueskySession? _cachedRefreshedSession;
 
   /// <summary>
@@ -46,6 +46,11 @@ public class BlueskyAuthService(HttpClient httpClient) : IBlueskyAuthService
   /// Multithread safety is required here since we may get multiple concurrent request
   /// where each request is handled by a different thread which activate this method
   /// from the delegating handler multiple times.
+  ///
+  /// I don't put the semaphore logic into the <see cref="BlueskyRefreshSessionHandler"/> since
+  /// that will be a transient dependency that might be recreated for different request,
+  /// rendering the semaphore logic useless since each instance willl have their own
+  /// semaphores. By putting the logic in this singleton service, we avoid that.
   ///
   /// Example: if 4 requests fails 401, the first request will take the semaphore,
   /// while the other 3 will wait for it to go back. The first request will
