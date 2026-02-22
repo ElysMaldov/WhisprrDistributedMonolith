@@ -19,18 +19,7 @@ public readonly struct SessionDto(string accessJwt, string refreshJwt)
 
   public static SessionDto FromJson(string json)
   {
-    return JsonSerializer.Deserialize(json, BlueskyJsonContext.Default.SessionDto);
+    return JsonSerializer.Deserialize(json, BlueskyDtoContext.Default.SessionDto);
   }
-
-
 }
 
-// Use json serializer to generate code that serializes the response JSON to this struct
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    WriteIndented = false)]
-[JsonSerializable(typeof(SessionDto))]
-internal partial class BlueskyJsonContext : JsonSerializerContext
-{
-
-}

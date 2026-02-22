@@ -1,4 +1,4 @@
-namespace Whisprr.Bluesky.Enums;
+namespace Whisprr.BlueskyService.Enums;
 
 public enum PostSortOrder
 {
