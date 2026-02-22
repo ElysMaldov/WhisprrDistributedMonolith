@@ -18,4 +18,9 @@ public class SocialTopicListeningTask : ITrackableModel
   public SourcePlatform SourcePlatform { get; set; } = null!;
 
   public ICollection<SocialInfo> GeneratedSocialInfos { get; set; } = []; // Since the name doesn't match convention, we setup the relationship using FLuent API in the context
+
+  public string Query
+  {
+    get => string.Join(" ", SocialTopic.Keywords);
+  }
 }

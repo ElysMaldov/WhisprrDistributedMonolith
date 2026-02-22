@@ -13,7 +13,7 @@ public class BlueskySocialListener(
 {
     protected override async Task<SocialInfo[]> PerformSearch(SocialTopicListeningTask task)
     {
-        var query = string.Join(" ", task.SocialTopic.Keywords);
+        var query = task.Query;
 
         var blueskyPosts = (await blueskyService.SearchPosts(q: query)).Posts;
         SocialInfo[] mappedPosts = blueskyPosts.Select(p => p.ToSocialInfo()).ToArray();
