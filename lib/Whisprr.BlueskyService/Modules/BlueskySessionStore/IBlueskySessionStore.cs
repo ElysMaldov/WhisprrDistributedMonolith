@@ -8,6 +8,6 @@ namespace Whisprr.BlueskyService.Modules.BlueskySessionStore;
 /// </summary>
 public interface IBlueskySessionStore
 {
-  Task<BlueskySession?> GetSessionAsync();
   Task SaveSessionAsync(BlueskySession session);
+  Task<BlueskySession?> GetSessionAsync();
 }

@@ -1,3 +1,5 @@
+using Moq;
+using StackExchange.Redis;
 using Whisprr.BlueskyService.Models.Domain;
 
 namespace Whisprr.BlueskyService.Test.Modules.BlueskySessionStore;
@@ -7,9 +9,16 @@ using BlueskyRedisSessionStoreClass = Whisprr.BlueskyService.Modules.BlueskySess
 
 public class BlueskyRedisSessionStoreTest
 {
+  private readonly Mock<IDatabase> _databaseMock;
+
+  public BlueskyRedisSessionStoreTest()
+  {
+    _databaseMock = new Mock<IDatabase>();
+  }
+
   private BlueskyRedisSessionStoreClass CreateStore()
   {
-    return new BlueskyRedisSessionStoreClass();
+    return new BlueskyRedisSessionStoreClass(_databaseMock.Object);
   }
 
   #region GetSessionAsync Tests
@@ -22,6 +31,9 @@ public class BlueskyRedisSessionStoreTest
   {
     // Arrange
     var store = CreateStore();
+    _databaseMock
+      .Setup(db => db.HashGetAll(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+      .Returns([]);
 
     // Act
     var result = await store.GetSessionAsync();
@@ -44,8 +56,13 @@ public class BlueskyRedisSessionStoreTest
       RefreshToken = "test-refresh-token"
     };
 
-    // First save the session
-    await store.SaveSessionAsync(session);
+    _databaseMock
+      .Setup(db => db.HashGetAll(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+      .Returns(new HashEntry[]
+      {
+        new(nameof(session.AccessToken), session.AccessToken),
+        new(nameof(session.RefreshToken), session.RefreshToken)
+      });
 
     // Act
     var result = await store.GetSessionAsync();
@@ -64,19 +81,20 @@ public class BlueskyRedisSessionStoreTest
   {
     // Arrange
     var store = CreateStore();
-    var firstSession = new BlueskySession
-    {
-      AccessToken = "first-access-token",
-      RefreshToken = "first-refresh-token"
-    };
     var secondSession = new BlueskySession
     {
       AccessToken = "second-access-token",
       RefreshToken = "second-refresh-token"
     };
 
-    await store.SaveSessionAsync(firstSession);
-    await store.SaveSessionAsync(secondSession);
+    // Simulate that the database returns the second session
+    _databaseMock
+      .Setup(db => db.HashGetAll(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+      .Returns(new HashEntry[]
+      {
+        new(nameof(secondSession.AccessToken), secondSession.AccessToken),
+        new(nameof(secondSession.RefreshToken), secondSession.RefreshToken)
+      });
 
     // Act
     var result = await store.GetSessionAsync();
@@ -100,13 +118,14 @@ public class BlueskyRedisSessionStoreTest
   {
     // Arrange
     var store = CreateStore();
-    var session = new BlueskySession
-    {
-      AccessToken = accessToken,
-      RefreshToken = refreshToken
-    };
 
-    await store.SaveSessionAsync(session);
+    _databaseMock
+      .Setup(db => db.HashGetAll(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+      .Returns(new HashEntry[]
+      {
+        new(nameof(BlueskySession.AccessToken), accessToken),
+        new(nameof(BlueskySession.RefreshToken), refreshToken)
+      });
 
     // Act
     var result = await store.GetSessionAsync();
@@ -133,13 +152,13 @@ public class BlueskyRedisSessionStoreTest
                            "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" +
                            "extra_refresh_token_data_here";
 
-    var session = new BlueskySession
-    {
-      AccessToken = longAccessToken,
-      RefreshToken = longRefreshToken
-    };
-
-    await store.SaveSessionAsync(session);
+    _databaseMock
+      .Setup(db => db.HashGetAll(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+      .Returns(new HashEntry[]
+      {
+        new(nameof(BlueskySession.AccessToken), longAccessToken),
+        new(nameof(BlueskySession.RefreshToken), longRefreshToken)
+      });
 
     // Act
     var result = await store.GetSessionAsync();
@@ -169,10 +188,16 @@ public class BlueskyRedisSessionStoreTest
     };
 
     // Act
-    var saveTask = store.SaveSessionAsync(session);
+    await store.SaveSessionAsync(session);
 
     // Assert
-    await saveTask; // Should complete without exception
+    _databaseMock.Verify(db => db.HashSet(
+      It.IsAny<RedisKey>(),
+      It.Is<HashEntry[]>(entries =>
+        entries.Any(e => e.Name == nameof(session.AccessToken) && e.Value == session.AccessToken) &&
+        entries.Any(e => e.Name == nameof(session.RefreshToken) && e.Value == session.RefreshToken)),
+      It.IsAny<CommandFlags>()),
+      Times.Once);
   }
 
   /// <summary>
@@ -183,27 +208,23 @@ public class BlueskyRedisSessionStoreTest
   {
     // Arrange
     var store = CreateStore();
-    var firstSession = new BlueskySession
-    {
-      AccessToken = "first-access",
-      RefreshToken = "first-refresh"
-    };
     var secondSession = new BlueskySession
     {
       AccessToken = "second-access",
       RefreshToken = "second-refresh"
     };
 
-    await store.SaveSessionAsync(firstSession);
-
     // Act
     await store.SaveSessionAsync(secondSession);
-    var result = await store.GetSessionAsync();
 
     // Assert
-    Assert.NotNull(result);
-    Assert.Equal(secondSession.AccessToken, result.Value.AccessToken);
-    Assert.Equal(secondSession.RefreshToken, result.Value.RefreshToken);
+    _databaseMock.Verify(db => db.HashSet(
+      It.IsAny<RedisKey>(),
+      It.Is<HashEntry[]>(entries =>
+        entries.Any(e => e.Name == nameof(secondSession.AccessToken) && e.Value == secondSession.AccessToken) &&
+        entries.Any(e => e.Name == nameof(secondSession.RefreshToken) && e.Value == secondSession.RefreshToken)),
+      It.IsAny<CommandFlags>()),
+      Times.Once);
   }
 
   /// <summary>
@@ -222,12 +243,15 @@ public class BlueskyRedisSessionStoreTest
 
     // Act
     await store.SaveSessionAsync(session);
-    var result = await store.GetSessionAsync();
 
     // Assert
-    Assert.NotNull(result);
-    Assert.Equal("", result.Value.AccessToken);
-    Assert.Equal("", result.Value.RefreshToken);
+    _databaseMock.Verify(db => db.HashSet(
+      It.IsAny<RedisKey>(),
+      It.Is<HashEntry[]>(entries =>
+        entries.Any(e => e.Name == nameof(session.AccessToken) && e.Value == "") &&
+        entries.Any(e => e.Name == nameof(session.RefreshToken) && e.Value == "")),
+      It.IsAny<CommandFlags>()),
+      Times.Once);
   }
 
   #endregion
@@ -235,15 +259,16 @@ public class BlueskyRedisSessionStoreTest
   #region Integration Tests
 
   /// <summary>
-  /// Test 9: Multiple stores should have isolated sessions (if using different Redis keys).
-  /// Note: This test assumes each store instance uses a unique key or connection.
+  /// Test 9: Multiple stores with different database instances should be isolated.
   /// </summary>
   [Fact]
-  public async Task MultipleStores_DifferentSessions_AreIsolated()
+  public async Task MultipleStores_DifferentDatabases_AreIsolated()
   {
     // Arrange
-    var store1 = CreateStore();
-    var store2 = CreateStore();
+    var dbMock1 = new Mock<IDatabase>();
+    var dbMock2 = new Mock<IDatabase>();
+    var store1 = new BlueskyRedisSessionStoreClass(dbMock1.Object);
+    var store2 = new BlueskyRedisSessionStoreClass(dbMock2.Object);
 
     var session1 = new BlueskySession
     {
@@ -260,14 +285,20 @@ public class BlueskyRedisSessionStoreTest
     await store1.SaveSessionAsync(session1);
     await store2.SaveSessionAsync(session2);
 
-    var result1 = await store1.GetSessionAsync();
-    var result2 = await store2.GetSessionAsync();
+    // Assert - Each store should have saved to its own database
+    dbMock1.Verify(db => db.HashSet(
+      It.IsAny<RedisKey>(),
+      It.Is<HashEntry[]>(entries =>
+        entries.Any(e => e.Value == session1.AccessToken)),
+      It.IsAny<CommandFlags>()),
+      Times.Once);
 
-    // Assert - This behavior depends on implementation
-    // If using the same Redis key, both should return session2 (last write wins)
-    // If using different keys, each should return its own session
-    Assert.NotNull(result1);
-    Assert.NotNull(result2);
+    dbMock2.Verify(db => db.HashSet(
+      It.IsAny<RedisKey>(),
+      It.Is<HashEntry[]>(entries =>
+        entries.Any(e => e.Value == session2.AccessToken)),
+      It.IsAny<CommandFlags>()),
+      Times.Once);
   }
 
   /// <summary>
@@ -284,7 +315,13 @@ public class BlueskyRedisSessionStoreTest
       RefreshToken = "persistent-refresh-token"
     };
 
-    await store.SaveSessionAsync(session);
+    _databaseMock
+      .Setup(db => db.HashGetAll(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+      .Returns(new HashEntry[]
+      {
+        new(nameof(session.AccessToken), session.AccessToken),
+        new(nameof(session.RefreshToken), session.RefreshToken)
+      });
 
     // Act - Create a new store instance (simulating app restart)
     var newStore = CreateStore();
@@ -313,7 +350,14 @@ public class BlueskyRedisSessionStoreTest
       AccessToken = "concurrent-access",
       RefreshToken = "concurrent-refresh"
     };
-    await store.SaveSessionAsync(session);
+
+    _databaseMock
+      .Setup(db => db.HashGetAll(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+      .Returns(new HashEntry[]
+      {
+        new(nameof(session.AccessToken), session.AccessToken),
+        new(nameof(session.RefreshToken), session.RefreshToken)
+      });
 
     // Act
     var tasks = new List<Task<BlueskySession?>>();
@@ -355,11 +399,12 @@ public class BlueskyRedisSessionStoreTest
 
     await Task.WhenAll(tasks);
 
-    // Assert - Should have one of the saved sessions
-    var result = await store.GetSessionAsync();
-    Assert.NotNull(result);
-    Assert.StartsWith("access-token-", result.Value.AccessToken);
-    Assert.StartsWith("refresh-token-", result.Value.RefreshToken);
+    // Assert - Should have called HashSet 10 times
+    _databaseMock.Verify(db => db.HashSet(
+      It.IsAny<RedisKey>(),
+      It.IsAny<HashEntry[]>(),
+      It.IsAny<CommandFlags>()),
+      Times.Exactly(10));
   }
 
   #endregion
