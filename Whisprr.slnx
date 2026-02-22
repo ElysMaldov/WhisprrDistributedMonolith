@@ -10,6 +10,7 @@
   </Folder>
   <Folder Name="/services/">
     <Project Path="services/Whisprr.API/Whisprr.API.csproj" />
+    <Project Path="services/Whisprr.Scheduler/Whisprr.Scheduler.csproj" />
     <Project Path="services/Whisprr.SocialScouter/Whisprr.SocialScouter.csproj" />
   </Folder>
 </Solution>
