@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using StackExchange.Redis;
 using Whisprr.Entities.Models;
 using Whisprr.Infrastructure.RabbitMQ;
 
@@ -9,26 +10,35 @@ namespace Whisprr.SocialScouter.Modules.RabbitMQ;
 /// <summary>
 /// Hosted service that consumes social listening tasks from RabbitMQ
 /// and pushes them to the in-memory channel for processing by SocialListenerWorker.
+/// Includes Dead Letter Exchange (DLX) support for failed messages.
 /// </summary>
 public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
 {
     private readonly RabbitMQConnectionManager _connectionManager;
     private readonly RabbitMQOptions _options;
     private readonly ChannelWriter<SocialTopicListeningTask> _taskChannelWriter;
+    private readonly IDatabase _redisDb;
     private readonly ILogger<RabbitMQListeningTaskConsumer> _logger;
 
     private IChannel? _channel;
     private string? _consumerTag;
 
+    // Redis key prefix for retry counting
+    private const string RetryCountPrefix = "rabbitmq:retry:";
+    // Retry count expiration (24 hours)
+    private static readonly TimeSpan RetryCountExpiration = TimeSpan.FromHours(24);
+
     public RabbitMQListeningTaskConsumer(
         RabbitMQConnectionManager connectionManager,
         RabbitMQOptions options,
         ChannelWriter<SocialTopicListeningTask> taskChannelWriter,
+        IDatabase redisDb,
         ILogger<RabbitMQListeningTaskConsumer> logger)
     {
         _connectionManager = connectionManager;
         _options = options;
         _taskChannelWriter = taskChannelWriter;
+        _redisDb = redisDb;
         _logger = logger;
     }
 
@@ -57,7 +67,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
     {
         _channel = await _connectionManager.CreateChannelAsync(cancellationToken);
 
-        // Declare exchange and queue
+        // Declare main exchange
         await _channel.ExchangeDeclareAsync(
             exchange: _options.ListeningTaskExchange,
             type: ExchangeType.Topic,
@@ -65,11 +75,42 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
             autoDelete: false,
             cancellationToken: cancellationToken);
 
+        // Declare Dead Letter Exchange (DLX)
+        await _channel.ExchangeDeclareAsync(
+            exchange: _options.DeadLetterExchange,
+            type: ExchangeType.Topic,
+            durable: true,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+
+        // Declare Dead Letter Queue (DLQ)
+        await _channel.QueueDeclareAsync(
+            queue: _options.DeadLetterQueue,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+
+        // Bind DLQ to DLX
+        await _channel.QueueBindAsync(
+            queue: _options.DeadLetterQueue,
+            exchange: _options.DeadLetterExchange,
+            routingKey: _options.DeadLetterRoutingKey,
+            cancellationToken: cancellationToken);
+
+        // Declare main queue with DLX arguments
+        var queueArgs = new Dictionary<string, object?>
+        {
+            { "x-dead-letter-exchange", _options.DeadLetterExchange },
+            { "x-dead-letter-routing-key", _options.DeadLetterRoutingKey }
+        };
+
         await _channel.QueueDeclareAsync(
             queue: _options.ListeningTaskQueue,
             durable: true,
             exclusive: false,
             autoDelete: false,
+            arguments: queueArgs,
             cancellationToken: cancellationToken);
 
         await _channel.QueueBindAsync(
@@ -86,6 +127,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
             cancellationToken: cancellationToken);
 
         LogChannelInitialized(_logger, _options.ListeningTaskQueue, _options.ListeningTaskExchange);
+        LogDlxInitialized(_logger, _options.DeadLetterExchange, _options.DeadLetterQueue);
     }
 
     private async Task StartConsumingAsync(CancellationToken stoppingToken)
@@ -122,6 +164,7 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
         if (_channel is null) return;
 
         var deliveryTag = args.DeliveryTag;
+        var messageId = args.BasicProperties.MessageId ?? deliveryTag.ToString();
 
         try
         {
@@ -131,17 +174,27 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
             if (task is null)
             {
                 LogDeserializationFailed(_logger, deliveryTag);
+                // Don't requeue - send to DLQ immediately
                 await _channel.BasicRejectAsync(deliveryTag, requeue: false);
                 return;
             }
 
             LogMessageReceived(_logger, task.Id, deliveryTag);
 
+            // Simulate failure for testing DLX
+            if (_options.SimulateFailureRate > 0 && Random.Shared.NextDouble() < _options.SimulateFailureRate)
+            {
+                throw new InvalidOperationException("Simulated processing failure for DLX testing");
+            }
+
             // Push to the channel (wait if channel is full)
             await _taskChannelWriter.WriteAsync(task);
 
             // Acknowledge the message after successful processing
             await _channel.BasicAckAsync(deliveryTag, multiple: false);
+
+            // Clear retry count on success
+            await ClearRetryCountAsync(messageId);
 
             LogMessageProcessed(_logger, task.Id);
         }
@@ -152,18 +205,62 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
         }
         catch (Exception ex)
         {
-            LogMessageProcessingFailed(_logger, ex, deliveryTag);
+            LogMessageProcessingFailed(_logger, ex, deliveryTag, messageId);
 
-            // Reject the message and requeue it for retry
-            try
+            // Handle retry logic with DLX
+            await HandleRetryAsync(deliveryTag, messageId, ex.Message);
+        }
+    }
+
+    private async Task HandleRetryAsync(ulong deliveryTag, string messageId, string errorMessage)
+    {
+        if (_channel is null) return;
+
+        try
+        {
+            // Get current retry count from Redis
+            var retryCount = await GetRetryCountAsync(messageId);
+            retryCount++;
+
+            LogRetryAttempt(_logger, messageId, retryCount, _options.MaxRetryAttempts);
+
+            if (retryCount >= _options.MaxRetryAttempts)
             {
+                // Max retries reached - reject without requeue (will go to DLX)
+                LogMaxRetriesReached(_logger, messageId, _options.MaxRetryAttempts, errorMessage);
+                await _channel.BasicRejectAsync(deliveryTag, requeue: false);
+                await ClearRetryCountAsync(messageId);
+            }
+            else
+            {
+                // Increment retry count and requeue
+                await SetRetryCountAsync(messageId, retryCount);
                 await _channel.BasicRejectAsync(deliveryTag, requeue: true);
             }
-            catch (Exception rejectEx)
-            {
-                LogRejectFailed(_logger, rejectEx, deliveryTag);
-            }
         }
+        catch (Exception rejectEx)
+        {
+            LogRejectFailed(_logger, rejectEx, deliveryTag);
+        }
+    }
+
+    private async Task<int> GetRetryCountAsync(string messageId)
+    {
+        var key = RetryCountPrefix + messageId;
+        var value = await _redisDb.StringGetAsync(key);
+        return value.IsNullOrEmpty ? 0 : (int)value;
+    }
+
+    private async Task SetRetryCountAsync(string messageId, int count)
+    {
+        var key = RetryCountPrefix + messageId;
+        await _redisDb.StringSetAsync(key, count, RetryCountExpiration);
+    }
+
+    private async Task ClearRetryCountAsync(string messageId)
+    {
+        var key = RetryCountPrefix + messageId;
+        await _redisDb.KeyDeleteAsync(key);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
@@ -206,6 +303,11 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
 
     [LoggerMessage(
         Level = LogLevel.Information,
+        Message = "RabbitMQ DLX initialized. Exchange: {DlxExchange}, Queue: {DlqQueue}")]
+    static partial void LogDlxInitialized(ILogger<RabbitMQListeningTaskConsumer> logger, string dlxExchange, string dlqQueue);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
         Message = "RabbitMQ consumer started with tag: {ConsumerTag}")]
     static partial void LogConsumerStarted(ILogger<RabbitMQListeningTaskConsumer> logger, string consumerTag);
 
@@ -231,8 +333,18 @@ public sealed partial class RabbitMQListeningTaskConsumer : BackgroundService
 
     [LoggerMessage(
         Level = LogLevel.Error,
-        Message = "Failed to process message. DeliveryTag: {DeliveryTag}")]
-    static partial void LogMessageProcessingFailed(ILogger<RabbitMQListeningTaskConsumer> logger, Exception ex, ulong deliveryTag);
+        Message = "Failed to process message. DeliveryTag: {DeliveryTag}, MessageId: {MessageId}")]
+    static partial void LogMessageProcessingFailed(ILogger<RabbitMQListeningTaskConsumer> logger, Exception ex, ulong deliveryTag, string messageId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Retry attempt {RetryCount}/{MaxRetries} for message {MessageId}")]
+    static partial void LogRetryAttempt(ILogger<RabbitMQListeningTaskConsumer> logger, string messageId, int retryCount, int maxRetries);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Max retries ({MaxRetries}) reached for message {MessageId}. Sending to DLQ. Error: {ErrorMessage}")]
+    static partial void LogMaxRetriesReached(ILogger<RabbitMQListeningTaskConsumer> logger, string messageId, int maxRetries, string errorMessage);
 
     [LoggerMessage(
         Level = LogLevel.Error,
