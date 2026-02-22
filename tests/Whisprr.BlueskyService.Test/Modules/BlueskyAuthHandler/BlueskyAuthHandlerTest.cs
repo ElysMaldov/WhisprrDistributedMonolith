@@ -7,7 +7,7 @@ using Whisprr.BlueskyService.Modules.BlueskySessionStore;
 
 namespace Whisprr.BlueskyService.Test.Modules.BlueskyAuthHandler;
 
-using BlueskyAuthHandler = BlueskyService.Modules.BlueskyAuthHandler.BlueskyAuthHandler;
+using BlueskyAuthHandler = Whisprr.BlueskyService.Modules.BlueskyAuthHandler.BlueskyAuthHandler;
 
 public class BlueskyAuthHandlerTest
 {
