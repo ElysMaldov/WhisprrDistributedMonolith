@@ -1,10 +1,12 @@
+using System.Threading.Channels;
 using StackExchange.Redis;
 using Whisprr.BlueskyService.Modules.BlueskyAuthHandler;
 using Whisprr.BlueskyService.Modules.BlueskyAuthService;
 using Whisprr.BlueskyService.Modules.BlueskyService;
 using Whisprr.BlueskyService.Modules.BlueskySessionStore;
-using Whisprr.SocialScouter;
+using Whisprr.Entities.Models;
 using Whisprr.SocialScouter.Modules.SocialListener;
+using Whisprr.SocialScouter.Workers;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -18,10 +20,6 @@ builder.Services.AddSingleton<IBlueskySessionStore, BlueskyRedisSessionStore>();
 
 // Get Bluesky configuration
 var blueskyBaseUrl = builder.Configuration["Bluesky:BaseUrl"] ?? "https://api.bsky.app";
-
-// Inject auth handlers
-builder.Services.AddTransient<BlueskyAuthHandler>();
-builder.Services.AddTransient<BlueskyRefreshSessionHandler>();
 
 // Inject HttpClient typed client for BlueskyService with auth handlers
 // BlueskyAuthHandler adds the auth token to requests
@@ -39,13 +37,42 @@ builder.Services.AddHttpClient<IBlueskyAuthService, BlueskyAuthService>(client =
   client.BaseAddress = new Uri(blueskyBaseUrl);
 });
 
+// Inject auth handlers
+builder.Services.AddTransient<BlueskyAuthHandler>();
+builder.Services.AddTransient<BlueskyRefreshSessionHandler>();
+
 // Inject BlueskyService
 builder.Services.AddScoped<IBlueskyService, BlueskyService>();
 
 // Inject SocialListener
 builder.Services.AddScoped<ISocialListener, BlueskySocialListener>();
 
-builder.Services.AddHostedService<Worker>();
+// Configure channels
+// Channel for activating social listeners (input)
+builder.Services.AddSingleton<Channel<SocialTopicListeningTask>>(_ =>
+    Channel.CreateUnbounded<SocialTopicListeningTask>(new UnboundedChannelOptions
+    {
+      SingleReader = false,
+      SingleWriter = false
+    }));
+
+// Channel for SocialInfo results (output) - one by one, single consumer
+builder.Services.AddSingleton<Channel<SocialInfo>>(_ =>
+    Channel.CreateUnbounded<SocialInfo>(new UnboundedChannelOptions
+    {
+      SingleReader = true,
+      SingleWriter = false
+    }));
+
+// Register channel readers/writers for easy injection
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<SocialTopicListeningTask>>().Reader);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<SocialTopicListeningTask>>().Writer);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<SocialInfo>>().Reader);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<SocialInfo>>().Writer);
+
+// Register workers
+builder.Services.AddHostedService<SocialListenerWorker>();
+builder.Services.AddHostedService<SocialInfoProcessorWorker>();
 
 var host = builder.Build();
 host.Run();
