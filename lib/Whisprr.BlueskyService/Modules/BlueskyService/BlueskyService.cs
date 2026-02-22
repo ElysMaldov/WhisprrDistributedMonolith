@@ -1,6 +1,7 @@
 using Whisprr.BlueskyService.Models.Dto;
 using System.Globalization;
-using Whisprr.Bluesky.Enums;
+using Microsoft.AspNetCore.WebUtilities;
+using Whisprr.BlueskyService.Enums;
 
 namespace Whisprr.BlueskyService.Modules.BlueskyService;
 
@@ -9,9 +10,9 @@ namespace Whisprr.BlueskyService.Modules.BlueskyService;
 /// can just focus on the core business logic.
 /// </summary>
 /// <param name="httpClient"></param>
-public class BlueskyService : IBlueskyService
+public class BlueskyService(HttpClient httpClient) : IBlueskyService
 {
-  public Task<SearchPostDto[]> SearchPosts(
+  public async Task<SearchPostsResponseDto> SearchPosts(
     string q,
     PostSortOrder? sort,
     DateTimeOffset? since,
@@ -22,6 +23,24 @@ public class BlueskyService : IBlueskyService
   {
     var endpoint = "/xrpc/app.bsky.feed.searchPosts";
 
-    throw new NotImplementedException();
+    Dictionary<string, string?> query = new()
+    {
+      ["q"] = q,
+      ["sort"] = sort?.ToApiString(),
+      ["since"] = since?.ToString("o"), // Convert to ISO 8601
+      ["until"] = until?.ToString("o"),
+      ["lang"] = lang?.TwoLetterISOLanguageName,
+      ["limit"] = limit?.ToString()
+    };
+
+    var uri = QueryHelpers.AddQueryString(endpoint, query);
+
+    var response = await httpClient.GetAsync(uri);
+    response.EnsureSuccessStatusCode();
+
+    var json = await response.Content.ReadAsStringAsync();
+    var dto = SearchPostsResponseDto.FromJson(json);
+
+    return dto;
   }
 }

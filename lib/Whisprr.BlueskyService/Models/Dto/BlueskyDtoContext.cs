@@ -4,6 +4,7 @@ using Whisprr.BlueskyService.Models.Dto;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     WriteIndented = false)]
+[JsonSerializable(typeof(SearchPostsResponseDto))]
 [JsonSerializable(typeof(SearchPostDto))]
 [JsonSerializable(typeof(BlueskyAuthorDto))]
 [JsonSerializable(typeof(BlueskyPostRecordDto))]
