@@ -1,7 +1,8 @@
-using Whisprr.Scheduler;
+using Whisprr.Infrastructure.MessageBroker;
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHostedService<Worker>();
+
+builder.AddMessageBroker();
 
 var host = builder.Build();
 host.Run();
