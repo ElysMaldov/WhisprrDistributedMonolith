@@ -1,5 +1,16 @@
 <Solution>
-  <Project Path="Whisprr.API/Whisprr.API.csproj" />
-  <Project Path="Whisprr.Entities/Whisprr.Entities.csproj" />
-  <Project Path="Whisprr.Infrastructure/Whisprr.Infrastructure.csproj" />
+  <Folder Name="/lib/">
+    <Project Path="lib/Whisprr.Infrastructure/Whisprr.Infrastructure.csproj" />
+    <Project Path="lib/Whisprr.BlueskyService/Whisprr.BlueskyService.csproj" />
+    <Project Path="lib/Whisprr.Entities/Whisprr.Entities.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Whisprr.BlueskyService.Test/Whisprr.BlueskyService.Test.csproj" />
+    <Project Path="tests/Whisprr.SocialScouter.Test/Whisprr.SocialScouter.Test.csproj" />
+  </Folder>
+  <Folder Name="/services/">
+    <Project Path="services/Whisprr.API/Whisprr.API.csproj" />
+    <Project Path="services/Whisprr.Scheduler/Whisprr.Scheduler.csproj" />
+    <Project Path="services/Whisprr.SocialScouter/Whisprr.SocialScouter.csproj" />
+  </Folder>
 </Solution>
